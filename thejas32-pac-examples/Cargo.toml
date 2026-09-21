@@ -1,0 +1,111 @@
+[package]
+name = "thejas32-examples"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "led-blink"
+path = "src/bin/led_blink.rs"
+
+[[bin]]
+name = "uart-echo"
+path = "src/bin/uart_echo.rs"
+
+[[bin]]
+name = "uart-intr-selftest"
+path = "src/bin/uart_intr_selftest.rs"
+
+[[bin]]
+name = "gpio-walk"
+path = "src/bin/gpio_walk.rs"
+
+[[bin]]
+name = "gpio-selftest"
+path = "src/bin/gpio_selftest.rs"
+
+[[bin]]
+name = "gpio-intr-selftest"
+path = "src/bin/gpio_intr_selftest.rs"
+
+[[bin]]
+name = "clock-probe"
+path = "src/bin/clock_probe.rs"
+
+[[bin]]
+name = "spi-selftest"
+path = "src/bin/spi_selftest.rs"
+
+[[bin]]
+name = "spi-intr-selftest"
+path = "src/bin/spi_intr_selftest.rs"
+
+[[bin]]
+name = "spi-intr-diag"
+path = "src/bin/spi_intr_diag.rs"
+
+[[bin]]
+name = "spi-intr-diag2"
+path = "src/bin/spi_intr_diag2.rs"
+
+[[bin]]
+name = "timer-selftest"
+path = "src/bin/timer_selftest.rs"
+
+[[bin]]
+name = "i2c-selftest"
+path = "src/bin/i2c_selftest.rs"
+
+[[bin]]
+name = "i2c-scan-all"
+path = "src/bin/i2c_scan_all.rs"
+
+[[bin]]
+name = "i2c-intr-selftest"
+path = "src/bin/i2c_intr_selftest.rs"
+
+[[bin]]
+name = "ads1015-selftest"
+path = "src/bin/ads1015_selftest.rs"
+
+[[bin]]
+name = "i2c-read-diag"
+path = "src/bin/i2c_read_diag.rs"
+
+[[bin]]
+name = "plic-selftest"
+path = "src/bin/plic_selftest.rs"
+
+[[bin]]
+name = "adc-selftest"
+path = "src/bin/adc_selftest.rs"
+
+[[bin]]
+name = "adc-diag"
+path = "src/bin/adc_diag.rs"
+
+[[bin]]
+name = "pwm-selftest"
+path = "src/bin/pwm_selftest.rs"
+
+[[bin]]
+name = "async-selftest"
+path = "src/bin/async_selftest.rs"
+
+[[bin]]
+name = "async-diag8"
+path = "src/bin/async_diag8.rs"
+
+[dependencies]
+# `critical-section` enables `Peripherals::take()`, the singleton accessor.
+# Without it svd2rust compiles `take()` out entirely and only `steal()` remains,
+# which is why every example used to steal its peripherals.
+thejas32-pac = { path = "../thejas32-pac", features = ["rt", "critical-section"] }
+thejas32-hal = { path = "../thejas32-hal" }
+riscv-rt = { version = "0.13.0", features = ["single-hart"] }
+panic-halt = "1.0.0"
+embedded-hal = "1.0.0"
+embedded-hal-nb = "1.0.0"
+nb = "1.1.0"
+riscv = "0.12.1"
+critical-section = "1.2.0"
+embedded-hal-async = "1.0.0"

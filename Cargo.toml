@@ -1,0 +1,8 @@
+[workspace]
+members = ["thejas32-pac", "thejas32-hal", "thejas32-pac-examples"]
+resolver = "3"
+
+[profile.release]
+debug = true
+lto = true
+panic = "abort"

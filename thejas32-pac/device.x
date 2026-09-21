@@ -1,0 +1,24 @@
+PROVIDE(UART0 = DefaultHandler);
+PROVIDE(UART1 = DefaultHandler);
+PROVIDE(UART2 = DefaultHandler);
+PROVIDE(SPI0 = DefaultHandler);
+PROVIDE(SPI1 = DefaultHandler);
+PROVIDE(I2C0 = DefaultHandler);
+PROVIDE(I2C1 = DefaultHandler);
+PROVIDE(TIMER0 = DefaultHandler);
+PROVIDE(TIMER1 = DefaultHandler);
+PROVIDE(TIMER2 = DefaultHandler);
+PROVIDE(GPIO0 = DefaultHandler);
+PROVIDE(GPIO1 = DefaultHandler);
+PROVIDE(GPIO2 = DefaultHandler);
+PROVIDE(GPIO3 = DefaultHandler);
+PROVIDE(GPIO4 = DefaultHandler);
+PROVIDE(GPIO5 = DefaultHandler);
+PROVIDE(GPIO6 = DefaultHandler);
+PROVIDE(GPIO7 = DefaultHandler);
+PROVIDE(GPIO8 = DefaultHandler);
+PROVIDE(GPIO9 = DefaultHandler);
+PROVIDE(GPIO10 = DefaultHandler);
+PROVIDE(GPIO11 = DefaultHandler);
+PROVIDE(GPIO12 = DefaultHandler);
+

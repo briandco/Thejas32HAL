@@ -1,0 +1,19 @@
+[package]
+name = "thejas32-hal"
+version = "0.1.0"
+edition = "2021"
+description = "HAL for the CDAC VEGA THEJAS32 RISC-V SoC"
+license = "Apache-2.0"
+# Verified, not guessed: 1.88 builds this crate for riscv32im-unknown-none-elf.
+# 1.82 cannot even parse the workspace manifest (`resolver = "3"` needs 1.84+),
+# so the true floor is somewhere in 1.84..=1.88 and 1.88 is the conservative
+# value we can actually demonstrate with the toolchains to hand.
+rust-version = "1.88"
+
+[dependencies]
+thejas32-pac = { path = "../thejas32-pac" }
+embedded-hal = "1.0.0"
+riscv = { version = "0.12.1", features = ["critical-section-single-hart"] }
+embedded-hal-async = "1.0.0"
+critical-section = "1.2.0"
+embedded-hal-nb = "1.0.0"

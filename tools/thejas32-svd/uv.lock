@@ -1,0 +1,35 @@
+version = 1
+revision = 3
+requires-python = ">=3.10"
+
+[[package]]
+name = "elementpath"
+version = "4.8.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ac/41/afdd82534c80e9675d1c51dc21d0889b72d023bfe395a2f5a44d751d3a73/elementpath-4.8.0.tar.gz", hash = "sha256:5822a2560d99e2633d95f78694c7ff9646adaa187db520da200a8e9479dc46ae", size = 358528, upload-time = "2025-03-03T20:51:08.397Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/45/95/615af832e7f507fe5ce4562b4be1bd2fec080c4ff6da88dcd0c2dbfca582/elementpath-4.8.0-py3-none-any.whl", hash = "sha256:5393191f84969bcf8033b05ec4593ef940e58622ea13cefe60ecefbbf09d58d9", size = 243271, upload-time = "2025-03-03T20:51:03.027Z" },
+]
+
+[[package]]
+name = "thejas32-svd"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "xmlschema" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "xmlschema", specifier = ">=2.0,<4.0" }]
+
+[[package]]
+name = "xmlschema"
+version = "3.4.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "elementpath" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/dd/de/a3b013b89addf4e22ea764acccc7c1a4f7ad407ea90d2acef8326b7921ef/xmlschema-3.4.5.tar.gz", hash = "sha256:243244743f151ec859ec0bbf1368fa3f70e5f29e977b77f72e1c9b8f8ae670f6", size = 592281, upload-time = "2025-03-22T07:56:18.873Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f8/e8/e8e9ff6d727a68a62909037b0bb8a5456885e6c5e99e0b85dbbcc1e5e4dc/xmlschema-3.4.5-py3-none-any.whl", hash = "sha256:c91a2fca387dc4e8a2f2cb4a411ed23bef9da539968e5d858a3fe7f76a65464e", size = 418192, upload-time = "2025-03-22T07:56:15.272Z" },
+]

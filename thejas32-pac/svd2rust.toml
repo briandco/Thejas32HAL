@@ -1,0 +1,4 @@
+atomics = false
+reexport_core_peripherals = false
+reexport_interrupt = true
+impl_debug = true
