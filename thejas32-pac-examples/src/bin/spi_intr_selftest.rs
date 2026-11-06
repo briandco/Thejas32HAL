@@ -151,7 +151,7 @@ fn machine_external() {
 
 /// One bounded transfer at register level.
 ///
-/// Deliberately not [`SpiBus`]: that path read-modify-writes the control
+/// Deliberately not [`SpiBus`](embedded_hal::spi::SpiBus): that path read-modify-writes the control
 /// register before every byte and polls the read-to-clear status register in a
 /// tight loop, both of which conflict with interrupt-driven operation. See the
 /// module docs. This is the pattern `spi-intr-diag2` validated twelve-for-twelve.

@@ -1,6 +1,6 @@
 //! GPIO interrupt self-test — the last 13 of the 23 PLIC lines.
 //!
-//! **Jumper required: PWM[0] → GPIO0 (`J2_5 → J2_11`)** — the same one
+//! **Jumper required: PWM\[0\] → GPIO0 (`J2_5 → J2_11`)** — the same one
 //! `pwm-selftest` uses for its waveform phase. PWM supplies the edges because
 //! it is already validated to 0.005% on period, so the stimulus rate is known
 //! rather than assumed, and reusing that jumper means no new pinout to get

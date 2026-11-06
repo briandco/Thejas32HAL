@@ -384,9 +384,13 @@ from being spent on a build error:
 |---|---|
 | `cargo fmt --all --check` | formatting drift |
 | `cargo clippy --workspace -- -D warnings` | lints; the workspace is clippy-clean |
-| Build HAL + all ~38 examples | a HAL change that breaks any caller |
+| Build HAL + all 40 examples | a HAL change that breaks any caller |
 | `cargo doc` with `RUSTDOCFLAGS=-D warnings` | broken intra-doc links |
 | Regenerate the PAC and diff | hand-edits to generated code, which the next `just update-pac` would silently undo |
+
+CI uses Rust **1.88**, the HAL's documented minimum, pinned so that a lint
+added in a later release cannot fail CI without a change here. All five gates
+were run locally with 1.88 before the workflow was added.
 
 There are no host unit tests, and they are not reachable without restructuring:
 the HAL uses `asm!("fence")` and other RISC-V-only intrinsics, so the crate

@@ -11,7 +11,7 @@
 //!    inactive until the global enable is set, and active after. This is the
 //!    trap worth catching: a channel configured without the global enable sits
 //!    silent with no error.
-//! 4. **Waveform measurement** *(needs a jumper)* — with **PWM[0] wired to
+//! 4. **Waveform measurement** *(needs a jumper)* — with **PWM\[0\] wired to
 //!    GPIO0**, the pin is sampled as an input and edges are timestamped with
 //!    the already-validated timer, giving measured high-time, period and duty
 //!    against what was configured. Three validated drivers (GPIO, Timer, UART)

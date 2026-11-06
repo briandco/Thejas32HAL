@@ -178,7 +178,7 @@ fn main() -> ! {
     );
 
     let (passed, n) = (c.passed, c.n);
-    let _ = writeln!(uart, "result: {}/{} checks passed\r", passed, n);
+    let _ = writeln!(uart, "result: {passed}/{n} checks passed\r");
     loop {
         core::hint::spin_loop();
     }

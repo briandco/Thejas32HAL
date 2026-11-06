@@ -1,0 +1,72 @@
+name: CI
+
+# Static gates only: there is no simulator for THEJAS32, so every behavioural
+# claim in the README comes from a self-test on real hardware. This keeps a
+# hardware session from being spent on a build error. See README
+# "Continuous integration".
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: fmt, clippy, build, docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned to the documented minimum (thejas32-hal `rust-version`), so the
+      # MSRV claim stays true and a new lint in a later release cannot turn
+      # CI red without a change here. Update deliberately.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88"
+          targets: riscv32im-unknown-none-elf
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Format
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Build the HAL and every example
+        run: cargo build --release --workspace
+
+      - name: Docs (broken intra-doc links fail)
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc --workspace --no-deps
+
+  pac:
+    name: PAC matches its generator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88"
+          components: rustfmt
+
+      - uses: astral-sh/setup-uv@v5
+
+      # The versions the committed PAC was generated with (see the header of
+      # thejas32-pac/src/lib.rs). The workspace's .cargo/config.toml defaults
+      # builds to RISC-V, so the host target is given explicitly.
+      - name: Install svd2rust and form
+        run: cargo install --locked --target x86_64-unknown-linux-gnu svd2rust@0.37.1 form@0.13.0
+
+      - name: Regenerate the PAC
+        run: ./update-pac.sh
+
+      # Generated code must only change through tools/thejas32-svd/main.py;
+      # a hand edit here would be silently undone by the next update-pac.
+      - name: Fail on any difference
+        run: git diff --exit-code -- thejas32-pac
