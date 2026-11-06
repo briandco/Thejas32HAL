@@ -36,6 +36,10 @@ name = "spi-selftest"
 path = "src/bin/spi_selftest.rs"
 
 [[bin]]
+name = "spi-flash-selftest"
+path = "src/bin/spi_flash_selftest.rs"
+
+[[bin]]
 name = "spi-intr-selftest"
 path = "src/bin/spi_intr_selftest.rs"
 

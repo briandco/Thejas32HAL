@@ -45,14 +45,28 @@
 //! Chip select is driven by the controller, not by a separate GPIO: the
 //! `PCS` field selects which of four slaves is addressed, and `CSAAT`
 //! ("chip select active after transfer") holds it asserted between bytes.
-//! Per the vendor driver, CSAAT must be set while a multi-byte command or
-//! data phase is in progress and cleared for its final byte.
 //!
-//! Each [`SpiBus`] method therefore holds CSAAT across its own buffer and
-//! releases it on the last byte. That makes a single `write`/`transfer` call
-//! one complete chip-select transaction. Chip select is *not* held across
-//! separate calls — if a device needs one assertion spanning several calls,
-//! drive [`Spi::set_csaat`] manually around them.
+//! Each [`SpiBus`] method sets CSAAT before its first byte and clears it only
+//! after its last byte has completed. That makes a single `write`/`transfer`
+//! call one complete chip-select transaction. Chip select is *not* held
+//! across separate calls — if a device needs one assertion spanning several
+//! calls, drive [`Spi::set_csaat`] manually around them.
+//!
+//! This is measured, and it differs from the vendor driver's comment, which
+//! says to clear CSAAT *for* the final byte. Doing that with the ARIES v3
+//! boot flash on SPI3 lost the final byte (JEDEC ID read `1f 86 00`); holding
+//! CSAAT through the last byte and clearing it afterwards, as CDAC's own
+//! `flasher.bin` does, reads `1f 86 01`. See `spi-flash-selftest`.
+//!
+//! # Word size
+//!
+//! A transfer is `8 + DBITS` bits, saturating at 16 (DBITS 8..=15 all give
+//! 16). [`Config::bits_per_transfer`] is the real bit count, 8..=16, and
+//! [`Spi::new`] writes `bits - 8` to DBITS. Measured by timing transfers at
+//! two clock dividers on SPI0 and SPI3 (`spi-flash-selftest`): each DBITS
+//! step adds exactly one bit time on both. `vega-sdk`'s `SPI_init`, and this
+//! HAL before the fix, wrote DBITS = 8, which sends 16-bit words. A loopback
+//! test cannot notice that; a real device (the boot flash) can.
 
 use core::ops::Deref;
 use embedded_hal::spi::{ErrorKind, ErrorType, SpiBus};
@@ -141,13 +155,15 @@ pub struct Config {
     pub chip_select: u8,
     /// SPI clock divider.
     pub divider: ClockDivider,
-    /// Bits per transfer; the field encodes the count directly (8 = 8 bits).
+    /// Bits per transfer, 8..=16. Encoded as DBITS = bits - 8 (measured; see
+    /// the module docs). Values outside the range are clamped.
     pub bits_per_transfer: u8,
 }
 
 impl Default for Config {
-    /// Matches `vega-sdk`'s `SPI_init`: mode 3, MSB first, chip select 0,
-    /// divide-by-16, 8 bits per transfer.
+    /// Mode 3, MSB first, chip select 0, divide-by-16, 8 bits per transfer.
+    /// Matches `vega-sdk`'s `SPI_init` except for the word size: that writes
+    /// DBITS = 8, which is 16-bit transfers.
     fn default() -> Self {
         Config {
             mode: Mode::Mode3,
@@ -184,11 +200,24 @@ impl Config {
         self
     }
 
-    /// Sets the number of bits per transfer.
+    /// Sets the number of bits per transfer (8..=16).
     pub fn with_bits_per_transfer(mut self, bits: u8) -> Self {
         self.bits_per_transfer = bits;
         self
     }
+}
+
+/// DBITS field value for a word size: a transfer is `8 + DBITS` bits, and
+/// DBITS 8..=15 all give 16 (measured; see the module docs).
+const fn dbits_for(bits: u8) -> u8 {
+    let bits = if bits < 8 {
+        8
+    } else if bits > 16 {
+        16
+    } else {
+        bits
+    };
+    bits - 8
 }
 
 /// An SPI interrupt source.
@@ -255,7 +284,7 @@ impl<SPI: SpiX> Spi<SPI> {
                 w.mode().bits(config.mode as u8);
                 w.rx_tx_intr().bits(0); // polling only
                 w.csaat().bit(false);
-                w.dbits().bits(config.bits_per_transfer & 0xF)
+                w.dbits().bits(dbits_for(config.bits_per_transfer))
             });
         }
         Spi { spi }
@@ -267,6 +296,9 @@ impl<SPI: SpiX> Spi<SPI> {
     /// hold one chip-select assertion across several calls.
     pub fn set_csaat(&self, active: bool) {
         self.spi.control().modify(|_, w| w.csaat().bit(active));
+        // The data write that follows must not overtake this control write.
+        // See `crate::fence`.
+        crate::fence();
     }
 
     /// Enables an interrupt source.
@@ -397,13 +429,13 @@ impl<SPI: SpiX> Spi<SPI> {
     where
         F: FnMut(&mut Self, usize) -> Result<(), Error>,
     {
-        for i in 0..len {
-            self.set_csaat(i + 1 < len);
-            f(self, i)?;
-        }
-        // Leave chip select released even if the buffer was empty.
+        self.set_csaat(true);
+        let result = (0..len).try_for_each(|i| f(self, i));
+        // Release only once the last byte is out, and also on error, so a
+        // failed transfer never leaves chip select asserted.
+        self.wait_if_busy();
         self.set_csaat(false);
-        Ok(())
+        result
     }
 
     /// Releases the SPI peripheral.

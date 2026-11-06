@@ -16,7 +16,7 @@ Bare-metal Rust ecosystem for the [CDAC VEGA THEJAS32](https://vegaprocessors.in
 |---|---|---|
 | UART | `serial::Serial` — `embedded-hal-nb` `Read`/`Write` | ✅ `uart-echo` |
 | GPIO | `gpio::Pin` — `embedded-hal` `OutputPin`/`InputPin`/`StatefulOutputPin`, type-state direction, per-pin PLIC interrupts | ✅ `gpio-selftest` (9/9); `gpio-intr-selftest` 4/4 — delivery, masking, re-enable, and trigger semantics determined (**level-sensitive, active high** — see below) |
-| SPI | `spi::Spi` — `embedded-hal` `SpiBus<u8>`, 4 controllers, hardware chip select, RX/TX interrupt enables | ✅ `spi-selftest` — config 3/3, state machine 4/4, MOSI↔MISO loopback 5/5. ⚠️ `spi-intr-selftest` 4/4 on delivery/masking/re-enable, but the interrupt **rate** is not understood — see below |
+| SPI | `spi::Spi` — `embedded-hal` `SpiBus<u8>`, 4 controllers, hardware chip select, RX/TX interrupt enables | ✅ `spi-selftest` — config 3/3, state machine 4/4, MOSI↔MISO loopback 5/5. ✅ `spi-flash-selftest` 6/6 — word size by timing on SPI0 and SPI3, and the boot flash read through `SpiBus` on SPI3 (JEDEC ID and data). See "SPI word size and chip select" below. ⚠️ `spi-intr-selftest` 4/4 on delivery/masking/re-enable, but the interrupt **rate** is not understood — see below |
 | Timer | `timer::Timer` — `embedded-hal` `DelayNs`, 3 timers, periodic + free-running counter | ✅ `timer-selftest` 8/8 — delays within 0.03%, period within 0.006%, rate cross-checked against UART baud |
 | PLIC | `plic::Plic` — enable/mask, raw vs active status, CSR helpers, software interrupts | ✅ `plic-selftest` 5/5 — SW interrupt, timer IRQ delivery rate within 0.002%, masking verified |
 | PWM | `pwm::Pwm` — `embedded-hal` `SetDutyCycle`, 8 channels, global gate | ✅ `pwm-selftest` 4/4 — encoding 3/3, period/on-time, global gating, and with PWM[0]→GPIO0 jumpered the measured waveform is within **0.005%** on period and 0.012% on high time |
@@ -81,6 +81,29 @@ pin's PLIC line inside the handler and re-enable it once the condition passes.
 can take while the level is high, not one per pulse. These are for "something is
 asserted" conditions — a button held, a sensor output — not for measuring
 frequency. Use a timer capture for that.
+
+### SPI word size and chip select
+
+Two driver defaults were wrong and are fixed; both were invisible to a
+loopback test and caught by a real device, the boot flash on SPI3.
+
+- **Word size.** A transfer is `8 + DBITS` bits, at most 16. Measured by
+  timing transfers at two clock dividers (`spi-flash-selftest`): DBITS 0, 1,
+  4, 7, 8 took 10, 11, 14, 17, 18 bit times (2 are fixed controller
+  overhead), and 12 and 15 also 18. Identical on SPI0 and SPI3. The HAL
+  used to write DBITS = 8, as `vega-sdk`'s `SPI_init` does, which sends
+  **16-bit** words: the flash then sees `0x00 0x9F` instead of `0x9F`, and
+  every read returned `00`. `Config::bits_per_transfer` is now the real bit
+  count (8..=16, default 8) and the driver writes `bits - 8`.
+- **Chip select.** The `SpiBus` methods used to clear CSAAT *before* the
+  last byte, following the vendor driver's comment. With the flash that
+  lost the last byte (ID `1f 86 00`). They now hold CSAAT through the last
+  byte and clear it after it completes, as CDAC's `flasher.bin` does, and
+  also on error. `set_csaat` now fences, so the data write after it cannot
+  overtake it.
+
+Before the fix `spi-flash-selftest` read the ID as `00 00 00` (1/4 checks);
+after it, `1f 86 01` and rustBoot's first instruction from flash `0x0` (6/6).
 
 ### SPI: only one writer of the control register
 
@@ -435,7 +458,7 @@ repository.
 |---|---|---|---|
 | Boot ROM | `0x01_0000`–`0x01_FFFF` | **8 KB**, mirrored 8× across a 64 KB window | Vendor bootloader |
 | IRAM | `0x20_0000`–`0x23_FFFF` | 256 KB | The bootloader keeps the top 6 KB (`0x23_E800` up) for its own stack while loading — hence its "250 KB" banner. That RAM is real and writable once your program runs. |
-| QSPI flash | not CPU-addressable | 2 MB | AT25SF161 (JEDEC `1f:86:01`) behind the QSPI controller at `0x1020_0100`; boot images occupy `0x00_0000`–`0x03_FFFF` |
+| SPI flash | not CPU-addressable | 2 MB | AT25SF161 (JEDEC `1f:86:01`) on **SPI3** at `0x1020_0200`, chip select 0 (`spi-flash-selftest`; SPI2 at `0x1020_0100` reads nothing). With J12 fitted the ROM copies 250 KB from flash `0x0` to IRAM. `flasher.bin` erases only `0x00_0000`–`0x03_FFFF` |
 
 `memory.x` gives the linker **250 KB**, not 256 KB. Because the bootloader is
 still using the top 6 KB while it loads the image, a 256 KB region would place
@@ -444,7 +467,7 @@ still using the top 6 KB while it loads the image, a 256 KB region would place
 ET1031 does not fault on unmapped reads — they return zeros. Probe memory by
 content, not by waiting for a trap.
 
-Key peripherals: UART @ `0x1000_0100`, SPI @ `0x1000_0600`, I2C @ `0x1000_0800`, Timer @ `0x1000_0A00`, GPIO0 @ `0x1008_0000`, GPIO1 @ `0x1018_0000`, ADC @ `0x1000_1000`, PWM @ `0x1040_0000`, PLIC @ `0x2001_0000`.
+Key peripherals: UART @ `0x1000_0100`, SPI0/1 @ `0x1000_0600`/`0x1000_0700`, SPI2/3 @ `0x1020_0100`/`0x1020_0200` (boot flash on SPI3), I2C @ `0x1000_0800`, Timer @ `0x1000_0A00`, GPIO0 @ `0x1008_0000`, GPIO1 @ `0x1018_0000`, ADC @ `0x1000_1000`, PWM @ `0x1040_0000`, PLIC @ `0x2001_0000`.
 
 ## License
 

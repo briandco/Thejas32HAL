@@ -74,7 +74,8 @@ fn main() -> ! {
         let ok = ctrl.mode().bits() == cfg.mode as u8
             && ctrl.data_order().bit() == (cfg.bit_order == BitOrder::LsbFirst)
             && ctrl.periph_cs().bits() == cfg.chip_select
-            && ctrl.dbits().bits() == cfg.bits_per_transfer
+            // A transfer is 8 + DBITS bits (measured in spi-flash-selftest).
+            && ctrl.dbits().bits() == cfg.bits_per_transfer - 8
             && !ctrl.periph().bit()
             && (baud >> 4) == cfg.divider as u32;
 
@@ -87,7 +88,7 @@ fn main() -> ! {
         write_hex(&mut serial, cfg.mode as u32, 1);
         write_str(&mut serial, b" cs=");
         write_hex(&mut serial, cfg.chip_select as u32, 1);
-        write_str(&mut serial, b" dbits=");
+        write_str(&mut serial, b" bits=");
         write_hex(&mut serial, cfg.bits_per_transfer as u32, 2);
         write_str(&mut serial, b"  ctrl=");
         write_hex(&mut serial, ctrl.bits(), 4);
